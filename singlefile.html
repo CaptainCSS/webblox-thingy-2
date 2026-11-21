@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111318">
+  <title>Webblox Launcher</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: #111318;
+      color: #f1f3f7;
+      font-family: system-ui, sans-serif;
+    }
+
+    main {
+      width: min(100%, 440px);
+      padding: 32px;
+      border: 1px solid #30343e;
+      border-radius: 18px;
+      background: #191c23;
+      box-shadow: 0 20px 70px #0007;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    p {
+      color: #a4a9b5;
+      line-height: 1.6;
+    }
+
+    label {
+      display: block;
+      margin: 20px 0 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid #383e4a;
+      border-radius: 9px;
+      outline: none;
+      background: #101218;
+      color: white;
+      font: inherit;
+    }
+
+    input:focus {
+      border-color: #8b7aff;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 24px;
+      padding: 14px;
+      border: 0;
+      border-radius: 9px;
+      background: #7865ed;
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #8b7aff;
+    }
+
+    #error {
+      color: #ff8585;
+      font-size: 13px;
+    }
+
+    .note {
+      margin-top: 20px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <h1>Webblox</h1>
+    <p>
+      Launch Roblox's browser client.
+      Enter a game ID or Roblox game URL,
+      or leave it empty to open the game browser.
+    </p>
+
+    <form id="launcher">
+      <label for="place">Game ID or URL</label>
+      <input
+        id="place"
+        type="text"
+        placeholder="Enter a Roblox game link or ID"
+        autocomplete="off"
+      >
+
+      <label for="wisp">Custom Wisp URL (optional)</label>
+      <input
+        id="wisp"
+        type="url"
+        placeholder="Default: this server's Wisp"
+        autocomplete="off"
+      >
+
+      <button type="submit">Launch Webblox</button>
+
+      <p id="error" role="alert"></p>
+    </form>
+
+    <p class="note">
+      Powered by the original Webblox engine.
+    </p>
+  </main>
+
+  <script>
+    const form = document.getElementById("launcher");
+    const placeInput = document.getElementById("place");
+    const wispInput = document.getElementById("wisp");
+    const error = document.getElementById("error");
+
+    function getPlaceId(value) {
+      value = value.trim();
+
+      if (/^[1-9]\d{0,18}$/.test(value)) {
+        return value;
+      }
+
+      try {
+        const url = new URL(value);
+        const match = url.pathname.match(
+          /\/games\/([1-9]\d{0,18})(?:\/|$)/i
+        );
+
+        return match ? match[1] : null;
+      } catch {
+        return null;
+      }
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      error.textContent = "";
+
+      const placeText = placeInput.value.trim();
+      const placeId = placeText
+        ? getPlaceId(placeText)
+        : null;
+
+      if (placeText && !placeId) {
+        error.textContent =
+          "Enter a valid Roblox game ID or game URL.";
+        return;
+      }
+
+      const destination = new URL("/blox/", location.origin);
+
+      if (placeId) {
+        destination.searchParams.set("placeId", placeId);
+      }
+
+      const wisp = wispInput.value.trim();
+
+      if (wisp) {
+        let parsed;
+
+        try {
+          parsed = new URL(wisp);
+        } catch {
+          error.textContent = "Invalid Wisp URL.";
+          return;
+        }
+
+        if (!["ws:", "wss:"].includes(parsed.protocol)) {
+          error.textContent =
+            "Wisp URL must use ws:// or wss://.";
+          return;
+        }
+
+        destination.searchParams.set("wisp", parsed.href);
+      }
+
+      location.assign(destination.href);
+    });
+  </script>
+</body>
+</html>
